@@ -1,0 +1,90 @@
+import tkinter as tk
+from tkinter import messagebox
+import threading
+import time
+
+class FocusTimer:
+    def __init__(self, master):
+        self.master = master
+        self.master.title("Focus Timer")
+
+        self.focus_minutes_var = tk.StringVar()
+        self.rest_minutes_var = tk.StringVar()
+
+        self.focus_timer_running = False
+        self.rest_timer_running = False
+
+        self.focus_duration = 0
+        self.rest_duration = 0
+
+        self.create_widgets()
+
+    def create_widgets(self):
+        tk.Label(self.master, text="Focus Time (minutes):").grid(row=0, column=0, padx=10, pady=10)
+        focus_entry = tk.Entry(self.master, textvariable=self.focus_minutes_var)
+        focus_entry.grid(row=0, column=1, padx=10, pady=10)
+
+        tk.Label(self.master, text="Rest Time (minutes):").grid(row=1, column=0, padx=10, pady=10)
+        rest_entry = tk.Entry(self.master, textvariable=self.rest_minutes_var)
+        rest_entry.grid(row=1, column=1, padx=10, pady=10)
+
+        start_button = tk.Button(self.master, text="Start Focus Timer", command=self.start_focus_timer)
+        start_button.grid(row=2, column=0, columnspan=2, pady=10)
+
+        self.time_label = tk.Label(self.master, text="")
+        self.time_label.grid(row=3, column=0, columnspan=2, pady=10)
+
+        self.focus_timer_button = tk.Button(self.master, text="Start Focus Timer", command=self.start_focus_timer)
+        self.focus_timer_button.grid(row=4, column=0, pady=10)
+
+        self.rest_timer_button = tk.Button(self.master, text="Start Rest Timer", command=self.start_rest_timer)
+        self.rest_timer_button.grid(row=4, column=1, pady=10)
+
+    def start_timer(self, minutes, timer_type):
+        seconds = minutes * 60
+        while seconds:
+            if timer_type == "focus":
+                self.focus_timer_running = True
+                self.rest_timer_running = False
+            elif timer_type == "rest":
+                self.focus_timer_running = False
+                self.rest_timer_running = True
+
+            mins, secs = divmod(seconds, 60)
+            timer = '{:02d}:{:02d}'.format(mins, secs)
+            self.time_label.config(text=timer)
+            self.master.update()
+            time.sleep(1)
+            seconds -= 1
+
+        if timer_type == "focus":
+            self.focus_timer_running = False
+            self.rest_timer_running = False
+            messagebox.showinfo("Focus Timer", "Time's up! Take a break.")
+            self.start_rest_timer()
+        elif timer_type == "rest":
+            self.focus_timer_running = False
+            self.rest_timer_running = False
+            messagebox.showinfo("Rest Timer", "Break's over. Let's get back to work.")
+            self.start_focus_timer()
+
+    def start_focus_timer(self):
+        try:
+            if not self.focus_timer_running:
+                self.focus_duration = int(self.focus_minutes_var.get())
+                threading.Thread(target=self.start_timer, args=(self.focus_duration, "focus"), daemon=True).start()
+        except ValueError:
+            messagebox.showwarning("Invalid Input", "Please enter a valid number of minutes for focus time.")
+
+    def start_rest_timer(self):
+        try:
+            if not self.rest_timer_running:
+                self.rest_duration = int(self.rest_minutes_var.get())
+                threading.Thread(target=self.start_timer, args=(self.rest_duration, "rest"), daemon=True).start()
+        except ValueError:
+            messagebox.showwarning("Invalid Input", "Please enter a valid number of minutes for rest time.")
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = FocusTimer(root)
+    root.mainloop()
